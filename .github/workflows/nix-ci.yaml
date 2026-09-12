@@ -1,0 +1,23 @@
+name: nix-ci
+# "on": [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - "releases/**"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+        # with:
+        #   extra-conf: |
+        #     extra-substituters = https://cache.<domain>.com/main
+        #     extra-trusted-public-keys = main:<pubkey>
+      - run: nix build --print-build-logs
+      # - name: Push to Cache
+      #   if: github.ref == 'refs/heads/main'
+      #   run: |
+      #     nix run github:zhaofengli/attic -- login ci https://cache.<domain>.com ${{ secrets.ATTIC_TOKEN }}
+      #     nix run github:zhaofengli/attic -- push main ./result
