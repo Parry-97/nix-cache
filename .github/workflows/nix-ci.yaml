@@ -15,16 +15,20 @@ jobs:
             extra-substituters = https://REMOVED-CACHE-HOST/main
             extra-trusted-public-keys = REMOVED-CACHE-KEY
       # Join the tailnet as an ephemeral tag:ci node so the runner can reach
-      # the nix cache service (svc:nix-cache). `ping` blocks until the
-      # service is actually reachable — tailnet propagation is eventually
-      # consistent and nix would otherwise fail DNS resolution.
+      # the nix cache service (svc:nix-cache). Ping the service VIP instead
+      # of its DNS name: GitHub runners keep systemd-resolved as their DNS
+      # stub, so MagicDNS names don't resolve here.
       - uses: tailscale/github-action@v4.1.3
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_CLIENT_SECRET }}
           tags: tag:ci
-          use-ephemeral: true
-          ping: REMOVED-CACHE-HOST
+          ping: REMOVED-CACHE-VIP
+      # Pin the service's DNS name to its TailVIP in /etc/hosts: the VIP is
+      # stable per service, and TLS stays valid because clients use the
+      # hostname through SNI.
+      - name: Pin tailnet service DNS
+        run: echo "REMOVED-CACHE-VIP REMOVED-CACHE-HOST" | sudo tee -a /etc/hosts
       - run: nix build --print-build-logs
       - name: Push to Cache
         if: github.ref == 'refs/heads/main'
