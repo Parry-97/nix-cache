@@ -1,5 +1,4 @@
 name: nix-ci
-# "on": [push, pull_request]
 on:
   push:
     branches:
@@ -11,13 +10,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-        # with:
-        #   extra-conf: |
-        #     extra-substituters = https://cache.<domain>.com/main
-        #     extra-trusted-public-keys = main:<pubkey>
+        with:
+          extra-conf: |
+            extra-substituters = https://REMOVED-CACHE-HOST/main
+            extra-trusted-public-keys = REMOVED-CACHE-KEY
+      # Join the tailnet as an ephemeral tag:ci node so the runner can reach
+      # the nix cache service (svc:nix-cache).
+      - uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_CLIENT_SECRET }}
+          tags: tag:ci
+          use-ephemeral: true
       - run: nix build --print-build-logs
-      # - name: Push to Cache
-      #   if: github.ref == 'refs/heads/main'
-      #   run: |
-      #     nix run github:zhaofengli/attic -- login ci https://cache.<domain>.com ${{ secrets.ATTIC_TOKEN }}
-      #     nix run github:zhaofengli/attic -- push main ./result
+      - name: Push to Cache
+        if: github.ref == 'refs/heads/main'
+        run: |
+          nix run github:zhaofengli/attic -- login ci https://REMOVED-CACHE-HOST ${{ secrets.ATTIC_TOKEN }}
+          nix run github:zhaofengli/attic -- push main ./result
