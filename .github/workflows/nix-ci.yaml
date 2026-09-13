@@ -15,13 +15,16 @@ jobs:
             extra-substituters = https://REMOVED-CACHE-HOST/main
             extra-trusted-public-keys = REMOVED-CACHE-KEY
       # Join the tailnet as an ephemeral tag:ci node so the runner can reach
-      # the nix cache service (svc:nix-cache).
-      - uses: tailscale/github-action@v3
+      # the nix cache service (svc:nix-cache). `ping` blocks until the
+      # service is actually reachable — tailnet propagation is eventually
+      # consistent and nix would otherwise fail DNS resolution.
+      - uses: tailscale/github-action@v4.1.3
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_CLIENT_SECRET }}
           tags: tag:ci
           use-ephemeral: true
+          ping: REMOVED-CACHE-HOST
       - run: nix build --print-build-logs
       - name: Push to Cache
         if: github.ref == 'refs/heads/main'
