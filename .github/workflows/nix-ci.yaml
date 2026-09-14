@@ -29,7 +29,7 @@ jobs:
         run: |
           echo "REMOVED-CACHE-VIP REMOVED-CACHE-HOST" | sudo tee -a /etc/hosts
           for _ in $(seq 1 30); do
-            if curl -fsS https://REMOVED-CACHE-HOST/main/nix-cache-info; then
+            if curl -m 10 -fsS https://REMOVED-CACHE-HOST/main/nix-cache-info; then
               echo "cache service reachable"; exit 0
             fi
             sleep 5
@@ -40,5 +40,8 @@ jobs:
       - name: Push to Cache
         if: github.ref == 'refs/heads/main'
         run: |
-          nix run github:zhaofengli/attic -- login ci https://REMOVED-CACHE-HOST ${{ secrets.ATTIC_TOKEN }}
-          nix run github:zhaofengli/attic -- push main ./result
+          # nixpkgs attic-client: entire closure is on cache.nixos.org, so
+          # `nix run` fetches instead of building from source (the unpinned
+          # github:zhaofengli/attic flake cost ~26 min in cargo builds in CI)
+          nix run nixpkgs#attic-client -- login ci https://REMOVED-CACHE-HOST ${{ secrets.ATTIC_TOKEN }}
+          nix run nixpkgs#attic-client -- push main ./result

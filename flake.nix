@@ -25,7 +25,7 @@
       formatter = forAllSystems ({ pkgs }: pkgs.nixfmt-tree);
       packages = forAllSystems (
         { pkgs }: {
-          default = pkgs.callPackage ./unsloth-desktop.nix { };
+          default = pkgs.callPackage ./package.nix { };
         }
       );
     };
