@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NIXPKGS_ALLOW_UNFREE: 1
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
@@ -36,7 +38,7 @@ jobs:
           done
           echo "cache service unreachable after 150s" >&2
           exit 1
-      - run: nix build --print-build-logs
+      - run: nix build --print-build-logs --impure
       - name: Push to Cache
         if: github.ref == 'refs/heads/main'
         run: |
