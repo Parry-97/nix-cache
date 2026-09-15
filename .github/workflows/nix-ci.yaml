@@ -9,13 +9,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NIXPKGS_ALLOW_UNFREE: 1
+      CACHE_HOST: ${{ secrets.CACHE_HOST }}       # service name inside our tailnet
+      CACHE_VIP: ${{ secrets.CACHE_VIP }}         # static TailVIP of the service
+      CACHE_MAIN_KEY: ${{ secrets.CACHE_MAIN_KEY }} # attic cache verification pubkey
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
         with:
           extra-conf: |
-            extra-substituters = https://REMOVED-CACHE-HOST/main
-            extra-trusted-public-keys = REMOVED-CACHE-KEY
+            extra-substituters = https://${{ env.CACHE_HOST }}/main
+            extra-trusted-public-keys = ${{ env.CACHE_MAIN_KEY }}
       - uses: tailscale/github-action@v4.1.3
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
@@ -29,9 +32,9 @@ jobs:
       # answers — also covering tailnet propagation delay.
       - name: Pin DNS and wait for cache service
         run: |
-          echo "REMOVED-CACHE-VIP REMOVED-CACHE-HOST" | sudo tee -a /etc/hosts
+          echo "$CACHE_VIP $CACHE_HOST" | sudo tee -a /etc/hosts
           for _ in $(seq 1 30); do
-            if curl -m 10 -fsS https://REMOVED-CACHE-HOST/main/nix-cache-info; then
+            if curl -m 10 -fsS "https://$CACHE_HOST/main/nix-cache-info"; then
               echo "cache service reachable"; exit 0
             fi
             sleep 5
@@ -45,5 +48,5 @@ jobs:
           # nixpkgs attic-client: entire closure is on cache.nixos.org, so
           # `nix run` fetches instead of building from source (the unpinned
           # github:zhaofengli/attic flake cost ~26 min in cargo builds in CI)
-          nix run nixpkgs#attic-client -- login ci https://REMOVED-CACHE-HOST ${{ secrets.ATTIC_TOKEN }}
+          nix run nixpkgs#attic-client -- login ci "https://$CACHE_HOST" ${{ secrets.ATTIC_TOKEN }}
           nix run nixpkgs#attic-client -- push main ./result
